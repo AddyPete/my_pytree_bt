@@ -1,3 +1,6 @@
 my_pytree_bt/__pycache__/__init__.cpython-310.pyc
 my_pytree_bt/__pycache__/my_pytree_bt_node.cpython-310.pyc
 my_pytree_bt/__pycache__/pytree_gears_node.cpython-310.pyc
+my_pytree_bt/__pycache__/pytree_gears_node_no_bb.cpython-310.pyc
+my_pytree_bt/__pycache__/pytree_real_gears_node_no_bb.cpython-310.pyc
+my_pytree_bt/__pycache__/pytree_real_gears_node.cpython-310.pyc
