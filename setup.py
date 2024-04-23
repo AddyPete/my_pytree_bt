@@ -21,6 +21,9 @@ setup(
         "console_scripts": [
             "my_pytree_bt_node = my_pytree_bt.my_pytree_bt_node:main",
             "pytree_gears_node = my_pytree_bt.pytree_gears_node:main",
+            "pytree_gears_node_no_bb = my_pytree_bt.pytree_gears_node_no_bb:main",
+            "pytree_real_gears_node = my_pytree_bt.pytree_real_gears_node:main",
+            "pytree_real_gears_node_no_bb = my_pytree_bt.pytree_real_gears_node_no_bb:main",
         ],
     },
 )
