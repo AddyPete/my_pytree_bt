@@ -475,11 +475,14 @@ def create_root() -> py_trees.behaviour.Behaviour:
         policy=py_trees.common.ParallelPolicy.SuccessOnAll(synchronise=False),
     )
 
+    # visited_waypoints = {
+    #     "wp_1": False,
+    #     "wp_2": False,
+    #     "wp_3": False,
+    #     "wp_4": False,
+    # }
     visited_waypoints = {
-        "wp_1": False,
-        "wp_2": False,
-        "wp_3": False,
-        "wp_4": False,
+        "wp_" + str(i + 1): False for i in range(len(BASE_WAYPOINT_OBJECTS))
     }
 
     blackboard.set("visited_waypoints", visited_waypoints)
