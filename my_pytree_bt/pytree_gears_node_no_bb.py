@@ -15,7 +15,12 @@ from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 from std_srvs.srv import Trigger
 
 # BASE_WAYPOINT_OBJECTS = [[2.7, 0.0], [2.2, 3.4]]  # OFFICE TEST 2 PTS
-BASE_WAYPOINT_OBJECTS = [[12.5, 0.0], [12.5, 2.87], [-0.13, 2.87], [-0.13, 29.01]]
+# BASE_WAYPOINT_OBJECTS = [[12.5, 0.0], [12.5, 2.87], [-0.13, 2.87], [-0.13, 29.01]]
+BASE_WAYPOINT_OBJECTS = [
+    [3.33, 0.20],
+    [2.1, 2.3],
+    [1.84, -0.34],
+]
 # OFFICE COMPLETE SQUARE
 # BASE_WAYPOINT_OBJECTS = [[10.6, 0], [10.6, 2.2], [-0.5, 2.2], [-0.5, 44]] #RAMP PHYSICS
 
@@ -24,6 +29,7 @@ ANGULAR_VEL = 3.0
 ROTATION_VEL = 1.5
 
 MAX_ROT_CORRECTION = 0.075
+FLICK_ANGLE = 0.17
 
 ZED_ODOM_TOPIC = "/odom"
 
@@ -237,12 +243,18 @@ class CheckSideWall(py_trees.behaviour.Behaviour):
         self.node.get_logger().info(f"Near Left Wall: {self.is_near_left_wall}")
         self.node.get_logger().info(f"Near Right Wall: {self.is_near_right_wall}")
 
+        self.cmd_vel_msg.linear.x = LINEAR_VEL
+
         if self.is_near_left_wall:
             self.angle_requested_go_right_publisher_.publish(Bool(data=True))
+            self.cmd_vel_msg.angular.z = -FLICK_ANGLE
+            self.cmd_vel_publisher_.publish(self.cmd_vel_msg)
             return Status.RUNNING
 
         if self.is_near_right_wall:
             self.angle_requested_go_left_publisher_.publish(Bool(data=True))
+            self.cmd_vel_msg.angular.z = FLICK_ANGLE
+            self.cmd_vel_publisher_.publish(self.cmd_vel_msg)
             return Status.RUNNING
 
         return Status.SUCCESS
@@ -475,10 +487,6 @@ class GoToWayPoint(py_trees.behaviour.Behaviour):
         if self.is_near_left_wall or self.is_near_right_wall:
             self.node.get_logger().info(f"Near Left or Right Wall")
 
-            # self.angle_requested_publisher_.publish(Bool(data=True))
-
-            # time.sleep(0.25)
-            # return Status.RUNNING
             return Status.FAILURE
 
         self.node.get_logger().info(f"Update  {self.__class__.__name__} - {self.name}")
