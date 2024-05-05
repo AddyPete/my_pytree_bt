@@ -24,6 +24,7 @@ setup(
             "pytree_gears_node_no_bb = my_pytree_bt.pytree_gears_node_no_bb:main",
             "pytree_real_gears_node = my_pytree_bt.pytree_real_gears_node:main",
             "pytree_real_gears_node_no_bb = my_pytree_bt.pytree_real_gears_node_no_bb:main",
+            "pytree_real_gears_final_node = my_pytree_bt.pytree_real_gears_final_node:main",
         ],
     },
 )
