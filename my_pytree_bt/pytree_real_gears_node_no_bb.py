@@ -20,31 +20,32 @@ from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy
 #     [0, 0],
 # ]
 # BASE_WAYPOINT_OBJECTS = [[2.158, 0.141], [2.330, 1.898]]  # OFFICE TEST 2 PTS
-BASE_WAYPOINT_OBJECTS = [
-    [3.67, 0],
-    [3.69, 1.99],
-    [0.7, 2.31],
-]  # OFFICE COMPLETE
-
-
 # BASE_WAYPOINT_OBJECTS = [
-#     [10.07, 0],
-#     [10.0, 2.1],
-#     [-0.5, 2.2],
-#     [-0.5, 44],
-# ]  # RAMP PHYSICS
+#     [5, 0],
+#     [5, 5],
+#     [0, 5],
+# ]
+
+
+BASE_WAYPOINT_OBJECTS = [
+    [10.0, 0],
+    [10.0, 2.1],
+    [-0.5, 2.2],
+    [-0.5, 44],
+]  # RAMP PHYSICS
 DIFF_ANGLE_THRESHOLD = 8  # DEGREE
 DISTANCE_TO_TARGET_THRESHOLD = 0.6  # meters
 ARUCO_FINISHED_MISISON_THRESH = 0.6  # meters
+ARUCO_NEAR_WALL_THRESH = 0.5 #meters
 
 LINEAR_VEL = 0.60
-LINEAR_VEL_ON_FLAT = 0.23
+LINEAR_VEL_ON_FLAT = 2.23
 ANGULAR_VEL = 0.05
-ROTATION_VEL = 0.18
+ROTATION_VEL = 0.20
 FLICK_ANGLE = 0.10
 
 # ZED_ODOM_TOPIC = "/zed/zed_node/odom"
-ZED_ODOM_TOPIC = "/zed/zed_node/odom"
+ZED_ODOM_TOPIC = "/odom"
 
 
 PERIOD_MS = 50  # MS
