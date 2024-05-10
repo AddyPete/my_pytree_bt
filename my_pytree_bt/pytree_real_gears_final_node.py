@@ -11,11 +11,11 @@ from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 
 
-BASE_WAYPOINT_OBJECTS = [
-    [3.8, 0],
-    [3.8, 2.0],
-    [0.6, 2.0],
-]
+# BASE_WAYPOINT_OBJECTS = [
+#     [3.8, 0],
+#     [3.8, 2.0],
+#     [0.6, 2.0],
+# ]
 # BASE_WAYPOINT_OBJECTS = [
 #     [10.0, 0],
 #     [10.3, 2.2],
@@ -23,6 +23,7 @@ BASE_WAYPOINT_OBJECTS = [
 #     [-0.7, 41.5],
 # ]  # RAMP PHYSICS
 
+BASE_WAYPOINT_OBJECTS = [[32.0, 0]]
 DIFF_ANGLE_THRESHOLD = 6  # DEGREE
 DISTANCE_TO_TARGET_THRESHOLD = 0.6  # meters
 ARUCO_FINISHED_MISISON_THRESH = 0.6  # meters
@@ -83,7 +84,9 @@ class SensorData:
         self.zed_is_near_front_obs = self.zed_is_near_left_obs = (
             self.zed_is_near_right_obs
         ) = False
-        self.zed_is_object_detected = False
+        self.zed_is_object_detected_front = False
+        self.zed_is_object_detected_left = False
+        self.zed_is_object_detected_right = False
         self.zed_slope = "Flat"
 
         ##### LIDAR VARIABLES
@@ -119,7 +122,9 @@ class SensorSubscribers(py_trees.behaviour.Behaviour):
         self.zed_is_near_front_obs = self.zed_is_near_left_obs = (
             self.zed_is_near_right_obs
         ) = False
-        self.zed_is_object_detected = False
+        self.zed_is_object_detected_front = self.zed_is_object_detected_left = (
+            self.zed_is_object_detected_right
+        ) = False
         self.zed_slope = "Flat"
 
         ##### LIDAR VARIABLES
@@ -169,10 +174,24 @@ class SensorSubscribers(py_trees.behaviour.Behaviour):
         self.zed_slope_subscriber = self.node.create_subscription(
             String, "/zed/slope", self.zed_slope_subscriber_callback, TOPIC_QUEUE_SIZE
         )
-        self.zed_object_detection_subscriber = self.node.create_subscription(
+        self.zed_object_detection_subscriber_front = self.node.create_subscription(
             Bool,
-            "/zed/is_object_detected",
-            self.zed_object_detection_subscriber_callback,
+            "/zed/is_object_detected_front",
+            self.zed_object_detection_subscriber_front_callback,
+            TOPIC_QUEUE_SIZE,
+        )
+
+        self.zed_object_detection_subscriber_front = self.node.create_subscription(
+            Bool,
+            "/zed/is_object_detected_left",
+            self.zed_object_detection_subscriber_left_callback,
+            TOPIC_QUEUE_SIZE,
+        )
+
+        self.zed_object_detection_subscriber_front = self.node.create_subscription(
+            Bool,
+            "/zed/is_object_detected_right",
+            self.zed_object_detection_subscriber_right_callback,
             TOPIC_QUEUE_SIZE,
         )
 
@@ -224,8 +243,14 @@ class SensorSubscribers(py_trees.behaviour.Behaviour):
     def zed_slope_subscriber_callback(self, msg):
         self.zed_slope = msg.data
 
-    def zed_object_detection_subscriber_callback(self, msg):
-        self.zed_is_object_detected = msg.data
+    def zed_object_detection_subscriber_front_callback(self, msg):
+        self.zed_is_object_detected_front = msg.data
+
+    def zed_object_detection_subscriber_left_callback(self, msg):
+        self.zed_is_object_detected_left = msg.data
+
+    def zed_object_detection_subscriber_right_callback(self, msg):
+        self.zed_is_object_detected_right = msg.data
 
     def lidar_front_wall_collision_subscriber_callback(self, msg):
         self.lidar_is_near_front_wall = msg.data
@@ -256,7 +281,14 @@ class SensorSubscribers(py_trees.behaviour.Behaviour):
         self.sensor_data.zed_is_near_left_obs = self.zed_is_near_left_obs
         self.sensor_data.zed_is_near_right_obs = self.zed_is_near_right_obs
 
-        self.sensor_data.zed_is_object_detected = self.zed_is_object_detected
+        self.sensor_data.zed_is_object_detected_front = (
+            self.zed_is_object_detected_front
+        )
+        self.sensor_data.zed_is_object_detected_left = self.zed_is_object_detected_left
+        self.sensor_data.zed_is_object_detected_right = (
+            self.zed_is_object_detected_right
+        )
+
         self.sensor_data.zed_slope = self.zed_slope
 
         self.sensor_data.lidar_is_near_front_wall = self.lidar_is_near_front_wall
@@ -286,12 +318,12 @@ class CheckDetectedObject(py_trees.behaviour.Behaviour):
         self.cmd_vel_msg = Twist()
 
     def update(self):
-        zed_is_object_detected = self.sensor_data.zed_is_object_detected
+        zed_is_object_detected_front = self.sensor_data.zed_is_object_detected_front
         zed_slope = self.sensor_data.zed_slope
 
-        self.node.get_logger().info(f"Object Detected: {zed_is_object_detected}")
+        self.node.get_logger().info(f"Object Detected: {zed_is_object_detected_front}")
 
-        if zed_is_object_detected and zed_slope == "Flat":
+        if zed_is_object_detected_front and zed_slope == "Flat":
             self.cmd_vel_msg.linear.x = 0.0
             self.cmd_vel_msg.angular.z = 0.0
             self.cmd_vel_publisher.publish(self.cmd_vel_msg)
@@ -421,14 +453,17 @@ class GoToWayPoint(py_trees.behaviour.Behaviour):
             self.cmd_vel_publisher.publish(self.cmd_vel_msg)
             return Status.SUCCESS
 
-        zed_is_object_detected = self.sensor_data.zed_is_object_detected
+        zed_is_object_detected_front = self.sensor_data.zed_is_object_detected_front
+        zed_is_object_detected_left = self.sensor_data.zed_is_object_detected_left
+        zed_is_object_detected_right = self.sensor_data.zed_is_object_detected_right
+
         zed_is_near_front_obs = self.sensor_data.zed_is_near_front_obs
         lidar_is_near_front_wall = self.sensor_data.lidar_is_near_front_wall
         zed_slope = self.sensor_data.zed_slope
 
         if zed_is_near_front_obs or lidar_is_near_front_wall:
             return Status.FAILURE
-        if zed_is_object_detected and zed_slope == "Flat":
+        if zed_is_object_detected_front and zed_slope == "Flat":
             return Status.FAILURE
 
         zed_is_near_left_obs = self.sensor_data.zed_is_near_left_obs
@@ -441,6 +476,10 @@ class GoToWayPoint(py_trees.behaviour.Behaviour):
             or zed_is_near_right_obs
             or lidar_is_near_left_wall
             or lidar_is_near_right_wall
+        ) or (
+            zed_is_object_detected_right
+            or zed_is_object_detected_left
+            and zed_slope == "Flat"
         ):
 
             linear_vel = LINEAR_VEL_DICT[zed_slope]
@@ -625,7 +664,9 @@ class CheckSideWall(py_trees.behaviour.Behaviour):
         zed_is_near_front_obs = self.sensor_data.zed_is_near_front_obs
         lidar_is_near_front_wall = self.sensor_data.lidar_is_near_front_wall
         zed_slope = self.sensor_data.zed_slope
-        zed_is_object_detected = self.sensor_data.zed_is_object_detected
+        zed_is_object_detected_front = self.sensor_data.zed_is_object_detected_front
+        zed_is_object_detected_left = self.sensor_data.zed_is_object_detected_left
+        zed_is_object_detected_right = self.sensor_data.zed_is_object_detected_right
 
         if zed_is_near_front_obs or lidar_is_near_front_wall:
             self.cmd_vel_msg.linear.x = 0.0
@@ -633,7 +674,7 @@ class CheckSideWall(py_trees.behaviour.Behaviour):
             self.cmd_vel_publisher.publish(self.cmd_vel_msg)
             self.node.get_logger().info(f"CheckSideWall Zed Obs | Lidar Front")
             return Status.FAILURE
-        if zed_is_object_detected and zed_slope == "Flat":
+        if zed_is_object_detected_front and zed_slope == "Flat":
             self.cmd_vel_msg.linear.x = 0.0
             self.cmd_vel_msg.angular.z = 0.0
             self.cmd_vel_publisher.publish(self.cmd_vel_msg)
@@ -656,14 +697,22 @@ class CheckSideWall(py_trees.behaviour.Behaviour):
             f"Near Right Wall Lidar: {lidar_is_near_right_wall}"
         )
 
-        if zed_is_near_left_obs or lidar_is_near_left_wall:
+        if (
+            zed_is_near_left_obs
+            or lidar_is_near_left_wall
+            or zed_is_object_detected_left
+        ):
             self.node.get_logger().info("NEAR LEFT!!!!!!!!")
             self.angle_requested_go_right_publisher.publish(Bool(data=True))
             self.cmd_vel_msg.angular.z = -FLICK_ANGLE
             self.cmd_vel_publisher.publish(self.cmd_vel_msg)
             return Status.RUNNING
 
-        if zed_is_near_right_obs or lidar_is_near_right_wall:
+        if (
+            zed_is_near_right_obs
+            or lidar_is_near_right_wall
+            or zed_is_object_detected_right
+        ):
             self.node.get_logger().info("NEAR RIGHT!!!!!!!!")
             self.angle_requested_go_left_publisher.publish(Bool(data=True))
             self.cmd_vel_msg.angular.z = FLICK_ANGLE
@@ -683,9 +732,16 @@ class CheckSideWall(py_trees.behaviour.Behaviour):
 
 
 class CheckWall(py_trees.behaviour.Behaviour):
-    def __init__(self, name, sensor_data):
+    # def __init__(self, name, sensor_data):
+    def __init__(self, name, waypoint_manager, waypoint_index, sensor_data):
         super(CheckWall, self).__init__(name)
+        self.waypoint_index = waypoint_index
+        self.waypoint_manager = waypoint_manager
+
         self.sensor_data = sensor_data
+
+        # self.current_waypoint = self.waypoint_manager.get_waypoint(waypoint_index)
+        # self.waypoint_finished_mission = False
 
     def setup(self, **kwargs):
 
@@ -704,10 +760,10 @@ class CheckWall(py_trees.behaviour.Behaviour):
         zed_is_near_front_obs = self.sensor_data.zed_is_near_front_obs
         lidar_is_near_front_wall = self.sensor_data.lidar_is_near_front_wall
 
-        zed_is_object_detected = self.sensor_data.zed_is_object_detected
+        zed_is_object_detected_front = self.sensor_data.zed_is_object_detected_front
         zed_slope = self.sensor_data.zed_slope
 
-        # if zed_is_object_detected and zed_slope == "Flat":
+        # if zed_is_object_detected_front and zed_slope == "Flat":
         #     self.cmd_vel_msg.linear.x = 0.0
         #     self.cmd_vel_msg.angular.z = 0.0
         #     self.cmd_vel_publisher.publish(self.cmd_vel_msg)
@@ -973,7 +1029,10 @@ def create_core_waypoint_subtree(waypoint_index, waypoint_manager, sensor_data):
         name=f"[{waypoint_index + 1}] Wall Detection", memory=True
     )
     guard_check_if_near_wall = CheckWall(
-        name=f"[{waypoint_index + 1}] Check Wall", sensor_data=sensor_data
+        name=f"[{waypoint_index + 1}] Check Wall",
+        waypoint_manager=waypoint_manager,
+        waypoint_index=waypoint_index,
+        sensor_data=sensor_data,
     )
 
     check_side_wall = CheckSideWall(
